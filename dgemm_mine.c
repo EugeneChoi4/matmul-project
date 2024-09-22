@@ -15,8 +15,8 @@ void kernel(double* A, double* B, double* C, int i, int j, int r, int n) {
     __m256d c03 = _mm256_setzero_pd(); __m256d c13 = _mm256_setzero_pd();
 
     for (int k = 0; k < r; k++) {
-        a0 = _mm256_load_pd(A + i + k * n);
-        a1 = _mm256_load_pd(A + i + 32 + k * n);
+        a0 = _mm256_load_pd(&A[i + k * n]);
+        a1 = _mm256_load_pd(&A[i + 4 + k * n]);
 
         b0 = _mm256_set1_pd(B[j + k * n]);
         b1 = _mm256_set1_pd(B[(j+1) + k * n]);
@@ -61,7 +61,7 @@ void square_dgemm(const int M, const double *A, const double *B, double *C) {
     int Mx = (M + 7) / 8 * 8;
     int My = (M + 3) / 4 * 4;
 
-    double *Bt = malloc(M * M * sizeof(double));
+    double *Bt = alloc(M * M);
     for (int i = 0; i < M; i++) { 
         for (int j = 0; j < M; j++) {
             Bt[i * M + j] = B[j * M + i];
@@ -90,4 +90,5 @@ void square_dgemm(const int M, const double *A, const double *B, double *C) {
     free(a);
     free(b);
     free(c);
+    free(Bt);
 }
