@@ -58,33 +58,34 @@ double* alloc(int n) {
 void square_dgemm(const int M, const double *A, const double *B, double *C) {
     // we can use kernel size 8x4 to start
     // column major order
-    int Mx = (M + 7) / 8 * 8;
-    int My = (M + 3) / 4 * 4;
+
+    // padding 8 - lcm(4,8)
+    int Md = (M + 7) / 8 * 8;
 
     double *Bt = alloc(M * M);
-    for (int i = 0; i < M; i++) { 
+    for (int i = 0; i < M; i++) {
         for (int j = 0; j < M; j++) {
             Bt[i * M + j] = B[j * M + i];
         }
     }
 
-    double *a = alloc(Mx * My);
-    double *b = alloc(Mx * My);
-    double *c = alloc(Mx * My);
+    double *a = alloc(Md * Md);
+    double *b = alloc(Md * Md);
+    double *c = alloc(Md * Md);
 
     for (int i = 0; i < M; i++) {
-        memcpy(&a[i * My], &A[i * M], sizeof(double) * M);
-        memcpy(&b[i * My], &Bt[i * M], sizeof(double) * M);
+        memcpy(&a[i * Md], &A[i * M], sizeof(double) * M);
+        memcpy(&b[i * Md], &Bt[i * M], sizeof(double) * M);
     }
 
-    for (int i = 0; i < Mx; i += 8) {
-        for (int j = 0; j < My; j += 4) {
-            kernel(a, b, c, i, j, M, My);
+    for (int i = 0; i < Md; i += 8) {
+        for (int j = 0; j < Md; j += 4) {
+            kernel(a, b, c, i, j, M, Md);
         }
     }
 
     for (int i = 0; i < M; i++) {
-        memcpy(&C[i * M], &c[i * My], sizeof(double) * M);
+        memcpy(&C[i * M], &c[i * Md], sizeof(double) * M);
     }
 
     free(a);
