@@ -4,7 +4,7 @@
 
 const char* dgemm_desc = "My awesome dgemm.";
 
-// try 8x4 kernel first
+// try 16x4 kernel first
 void kernel(double* A, double* B, double* C, int i, int j, int r, int n) {
     __m512d a0, a1, b0, b1, b2, b3;
     
@@ -14,7 +14,7 @@ void kernel(double* A, double* B, double* C, int i, int j, int r, int n) {
     __m512d c02 = _mm512_setzero_pd(); __m512d c12 = _mm512_setzero_pd(); 
     __m512d c03 = _mm512_setzero_pd(); __m512d c13 = _mm512_setzero_pd();
 
-    for (int k = 0; k < r; k++) {
+    for (int k = 0; k < r; ++k) {
         a0 = _mm512_load_pd(&A[i + k * n]);
         a1 = _mm512_load_pd(&A[i + 8 + k * n]);
 
@@ -63,8 +63,8 @@ void square_dgemm(const int M, const double *A, const double *B, double *C) {
     int Md = (M + 15) / 16 * 16;
 
     double *Bt = alloc(M * M);
-    for (int i = 0; i < M; i++) {
-        for (int j = 0; j < M; j++) {
+    for (int i = 0; i < M; ++i) {
+        for (int j = 0; j < M; ++j) {
             Bt[i * M + j] = B[j * M + i];
         }
     }
@@ -73,7 +73,7 @@ void square_dgemm(const int M, const double *A, const double *B, double *C) {
     double *b = alloc(Md * Md);
     double *c = alloc(Md * Md);
 
-    for (int i = 0; i < M; i++) {
+    for (int i = 0; i < M; ++i) {
         memcpy(&a[i * Md], &A[i * M], sizeof(double) * M);
         memcpy(&b[i * Md], &Bt[i * M], sizeof(double) * M);
     }
