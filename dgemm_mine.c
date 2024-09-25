@@ -4,21 +4,31 @@
 
 const char* dgemm_desc = "My awesome dgemm.";
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define BLOCK_SIZE 96
+
 // 16x6 microkernel
-void micro_kernel(double* A, double* B, double* C, int i, int j, int r, int n) {
+void micro_kernel(double* A, double* B, double* C, int i, int j, int K, int n) {
     __m512d a0, a1, b0, b1;
     
-    __m512d c00 = _mm512_setzero_pd(); __m512d c10 = _mm512_setzero_pd(); 
-    __m512d c01 = _mm512_setzero_pd(); __m512d c11 = _mm512_setzero_pd();
+    __m512d c00, c01, c02, c03, c04, c05;
+    __m512d c10, c11, c12, c13, c14, c15;
 
-    __m512d c02 = _mm512_setzero_pd(); __m512d c12 = _mm512_setzero_pd(); 
-    __m512d c03 = _mm512_setzero_pd(); __m512d c13 = _mm512_setzero_pd();
+    c00 = _mm512_load_pd(C + j * n + i);
+    c01 = _mm512_load_pd(C + (j+1) * n + i);
+    c02 = _mm512_load_pd(C + (j+2) * n + i);
+    c03 = _mm512_load_pd(C + (j+3) * n + i);
+    c04 = _mm512_load_pd(C + (j+4) * n + i);
+    c05 = _mm512_load_pd(C + (j+5) * n + i);
 
-    __m512d c04 = _mm512_setzero_pd(); __m512d c14 = _mm512_setzero_pd(); 
-    __m512d c05 = _mm512_setzero_pd(); __m512d c15 = _mm512_setzero_pd();
+    c10 = _mm512_load_pd(C + j * n + (i+8));
+    c11 = _mm512_load_pd(C + (j+1) * n + (i+8));
+    c12 = _mm512_load_pd(C + (j+2) * n + (i+8));
+    c13 = _mm512_load_pd(C + (j+3) * n + (i+8));
+    c14 = _mm512_load_pd(C + (j+4) * n + (i+8));
+    c15 = _mm512_load_pd(C + (j+5) * n + (i+8));
 
-
-    for (int k = 0; k < r; ++k) {
+    for (int k = 0; k < K; ++k) {
         a0 = _mm512_load_pd(A + i + k * n);
         a1 = _mm512_load_pd(A + i + 8 + k * n);
 
@@ -75,15 +85,24 @@ double* alloc(int n) {
     return ptr;
 }
 
+void do_block(int Md, double *A, double *B, double *C, const int bM, const int bN, const int bK) {
+
+    for (int i = 0; i < bM; i += 16) {
+        for (int j = 0; j < bN; j += 6) {
+            micro_kernel(A, B, C, i, j, bK, Md);
+        }
+    }
+    
+}
+
+
 void square_dgemm(const int M, const double * restrict A, 
 		  const double * restrict B, 
 		  double * restrict C) {
-    // we can use kernel size 16x4 to start
-    // column major order
 
-    // padding 16 - lcm(4,16)
     int Md = (M + 47) / 48 * 48;
 
+    // transpose B
     double *Bt = alloc(M * M);
     for (int i = 0; i < M; ++i) {
         for (int j = 0; j < M; ++j) {
@@ -91,27 +110,32 @@ void square_dgemm(const int M, const double * restrict A,
         }
     }
 
-    double *a = alloc(Md * Md);
-    double *b = alloc(Md * Md);
-    double *c = alloc(Md * Md);
+    double *Ad = alloc(Md * Md);
+    double *Bd = alloc(Md * Md);
+    double *Cd = alloc(Md * Md);
 
     for (int i = 0; i < M; ++i) {
-        memcpy(&a[i * Md], &A[i * M], sizeof(double) * M);
-        memcpy(&b[i * Md], &Bt[i * M], sizeof(double) * M);
+        memcpy(&Ad[i * Md], &A[i * M], sizeof(double) * M);
+        memcpy(&Bd[i * Md], &Bt[i * M], sizeof(double) * M);
     }
 
-    for (int i = 0; i < Md; i += 16) {
-        for (int j = 0; j < Md; j += 6) {
-            micro_kernel(a, b, c, i, j, M, Md);
+    for (int j = 0; j < Md; j += BLOCK_SIZE) {
+        int bN = min(BLOCK_SIZE, Md - j);
+        for (int i = 0; i < Md; i += BLOCK_SIZE){
+            int bM = min(BLOCK_SIZE, Md - i);
+            for (int k = 0; k < Md; k += BLOCK_SIZE) {
+                int bK = min(BLOCK_SIZE, Md - k);
+                do_block(Md, Ad + i + k * Md, Bd + j + k * Md, Cd + i + j * Md, bM, bN, bK);
+            }
         }
-    }
+    }    
 
     for (int i = 0; i < M; i++) {
-        memcpy(&C[i * M], &c[i * Md], sizeof(double) * M);
+        memcpy(&C[i * M], &Cd[i * Md], sizeof(double) * M);
     }
 
-    free(a);
-    free(b);
-    free(c);
+    free(Ad);
+    free(Bd);
+    free(Cd);
     free(Bt);
 }
