@@ -79,28 +79,6 @@ void micro_kernel(double* A, double* B, double* C, int i, int j, int K, int Md, 
     _mm512_store_pd(C + (j+5) * Md + (i+8), c15);
 }
 
-double* alloc(int n) {
-    double* ptr = (double*) aligned_alloc(64, sizeof(double) * n);
-    memset(ptr, 0, sizeof(double) * n);
-    return ptr;
-}
-
-
-/*
-    A is bM-by-bK
-    B is bK-by-bN
-    C is bM-by-bN
-*/
-void do_block(double *A, double *B, double *C, const int bM, const int bN, const int bK, int Md, int Nd) {
-
-    for (int i = 0; i < bM; i += 16) {
-        for (int j = 0; j < bN; j += 6) {
-            micro_kernel(A, B, C, i, j, bK, Md, Nd);
-        }
-    }
-    
-}
-
 
 void square_dgemm(const int M, const double * restrict A, 
 		  const double * restrict B, 
@@ -109,21 +87,20 @@ void square_dgemm(const int M, const double * restrict A,
     int Md = (M + 15) / 16 * 16;
     int Nd = (M + 5) / 6 * 6;
 
-    // transpose B
-    double *Bt = alloc(M * M);
+    // transpose B directly into Bd
+    
+    double *Bd = _mm_malloc(sizeof(double) * M * Nd, 64);
     for (int i = 0; i < M; ++i) {
         for (int j = 0; j < M; ++j) {
-            Bt[i * M + j] = B[j * M + i];
+            Bd[j * Nd + i] = B[i * M + j];
         }
     }
 
-    double *Ad = alloc(Md * M);
-    double *Bd = alloc(M * Nd);
-    double *Cd = alloc(Md * Nd);
+    double *Ad = _mm_malloc(sizeof(double) * Md * M, 64);
+    double *Cd = _mm_malloc(sizeof(double) * Md * Nd, 64);
 
     for (int i = 0; i < M; ++i) {
         memcpy(&Ad[i * Md], &A[i * M], sizeof(double) * M);
-        memcpy(&Bd[i * Nd], &Bt[i * M], sizeof(double) * M);
     }
 
     for (int j = 0; j < M; j += BLOCK_SIZE) {
@@ -132,7 +109,12 @@ void square_dgemm(const int M, const double * restrict A,
             int bM = min(BLOCK_SIZE, M - i);
             for (int k = 0; k < M; k += BLOCK_SIZE) {
                 int bK = min(BLOCK_SIZE, M - k);
-                do_block(Ad + i + k * Md, Bd + j + k * Nd, Cd + i + j * Md, bM, bN, bK, Md, Nd);
+
+                for (int x = 0; x < bM; x += 16) {
+                    for (int y = 0; y < bN; y += 6) {
+                        micro_kernel(Ad + i + k * Md, Bd + j + k * Nd, Cd + i + j * Md, x, y, bK, Md, Nd);
+                    }
+                }
             }
         }
     }    
@@ -144,5 +126,4 @@ void square_dgemm(const int M, const double * restrict A,
     free(Ad);
     free(Bd);
     free(Cd);
-    free(Bt);
 }
