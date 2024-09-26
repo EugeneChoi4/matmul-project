@@ -1,6 +1,5 @@
 #include <immintrin.h>
 #include <string.h>
-#include <stdio.h>
 
 const char* dgemm_desc = "My awesome dgemm.";
 
@@ -9,7 +8,7 @@ const char* dgemm_desc = "My awesome dgemm.";
 #define BLOCK_SIZE_L2 192
 #define BLOCK_SIZE_L3 192
 
-// 16x6 microkernel
+// 32x6 microkernel
 void micro_kernel(double* A, double* B, double* C, int i, int j, int K, int Md, int Nd) {
     __m512d a0, a1, a2, a3, b0, b1;
     
@@ -160,7 +159,7 @@ void square_dgemm(const int M, const double * restrict A,
         memcpy(C + i * M, Cd + i * Md, sizeof(double) * M);
     }
 
-    free(Ad);
-    free(Bd);
-    free(Cd);
+    _mm_free(Ad);
+    _mm_free(Bd);
+    _mm_free(Cd);
 }
