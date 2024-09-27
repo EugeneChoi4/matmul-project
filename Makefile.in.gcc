@@ -2,7 +2,7 @@
 BUILDS=mine basic blocked f2c blas
 
 # C and Fortran compilers
-CC=icx
+CC=gcc
 FC=gfortran
 LD=gfortran
 
@@ -11,7 +11,7 @@ PYTHON=python3
 
 # Compiler optimization flags.  You will definitely want to play with these!
 OPTFLAGS = -march=native -O3
-CFLAGS = -fPIE
+CFLAGS = 
 FFLAGS =
 LDFLAGS = -fopenmp
 
@@ -19,12 +19,9 @@ LDFLAGS = -fopenmp
 CPPFLAGS = "-DCOMPILER=\"$(CC)\"" "-DFLAGS=\"$(OPTFLAGS)\""
 
 # Compile a C version (using basic_dgemm.c, in this case):
-LIBS = -lm -lirc
+LIBS = -lm
 OBJS = matmul.o
 
 # Libraries and include files for BLAS
 LIBBLAS=`pkg-config --libs openblas`
 INCBLAS=`pkg-config --cflags openblas`
-
-# to use gcc, set CC=gcc and no CFLAGS and LIBS = -lm
-# source /opt/intel/oneapi/setvars.sh
