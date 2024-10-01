@@ -17,23 +17,23 @@ void micro_kernel(double* A, double* B, double* C, int i, int j, int K, int M, i
     __m512d c00, c01, c02, c03, c04, c05;
     __m512d c10, c11, c12, c13, c14, c15;
 
-    c00 = _mm512_mask_load_pd(zero_vec, high_mask, C + j * M + i);
-    c01 = _mm512_mask_load_pd(zero_vec, high_mask, C + (j+1) * M + i);
-    c02 = _mm512_mask_load_pd(zero_vec, high_mask, C + (j+2) * M + i);
-    c03 = _mm512_mask_load_pd(zero_vec, high_mask, C + (j+3) * M + i);
-    c04 = _mm512_mask_load_pd(zero_vec, high_mask, C + (j+4) * M + i);
-    c05 = _mm512_mask_load_pd(zero_vec, high_mask, C + (j+5) * M + i);
+    c00 = _mm512_mask_loadu_pd(zero_vec, high_mask, C + j * M + i);
+    c01 = _mm512_mask_loadu_pd(zero_vec, high_mask, C + (j+1) * M + i);
+    c02 = _mm512_mask_loadu_pd(zero_vec, high_mask, C + (j+2) * M + i);
+    c03 = _mm512_mask_loadu_pd(zero_vec, high_mask, C + (j+3) * M + i);
+    c04 = _mm512_mask_loadu_pd(zero_vec, high_mask, C + (j+4) * M + i);
+    c05 = _mm512_mask_loadu_pd(zero_vec, high_mask, C + (j+5) * M + i);
 
-    c10 = _mm512_mask_load_pd(zero_vec, low_mask, C + j * M + (i+8));
-    c11 = _mm512_mask_load_pd(zero_vec, low_mask, C + (j+1) * M + (i+8));
-    c12 = _mm512_mask_load_pd(zero_vec, low_mask, C + (j+2) * M + (i+8));
-    c13 = _mm512_mask_load_pd(zero_vec, low_mask, C + (j+3) * M + (i+8));
-    c14 = _mm512_mask_load_pd(zero_vec, low_mask, C + (j+4) * M + (i+8));
-    c15 = _mm512_mask_load_pd(zero_vec, low_mask, C + (j+5) * M + (i+8));
+    c10 = _mm512_mask_loadu_pd(zero_vec, low_mask, C + j * M + (i+8));
+    c11 = _mm512_mask_loadu_pd(zero_vec, low_mask, C + (j+1) * M + (i+8));
+    c12 = _mm512_mask_loadu_pd(zero_vec, low_mask, C + (j+2) * M + (i+8));
+    c13 = _mm512_mask_loadu_pd(zero_vec, low_mask, C + (j+3) * M + (i+8));
+    c14 = _mm512_mask_loadu_pd(zero_vec, low_mask, C + (j+4) * M + (i+8));
+    c15 = _mm512_mask_loadu_pd(zero_vec, low_mask, C + (j+5) * M + (i+8));
 
     for (int k = 0; k < K; ++k) {
-        a0 = _mm512_mask_load_pd(zero_vec, high_mask, A + i + k * M);
-        a1 = _mm512_mask_load_pd(zero_vec, low_mask, A + i + 8 + k * M);
+        a0 = _mm512_mask_loadu_pd(zero_vec, high_mask, A + i + k * M);
+        a1 = _mm512_mask_loadu_pd(zero_vec, low_mask, A + i + 8 + k * M);
 
         b0 = _mm512_set1_pd(B[j * M + k]);
         c00 = _mm512_fmadd_pd(a0, b0, c00);
@@ -65,23 +65,23 @@ void micro_kernel(double* A, double* B, double* C, int i, int j, int K, int M, i
         c15 = _mm512_fmadd_pd(a1, b1, c15);
     }
 
-    _mm512_mask_store_pd(C + j * M + (i), high_mask, c00); 
-    _mm512_mask_store_pd(C + j * M + (i+8), low_mask, c10); 
+    _mm512_mask_storeu_pd(C + j * M + (i), high_mask, c00); 
+    _mm512_mask_storeu_pd(C + j * M + (i+8), low_mask, c10); 
 
-    _mm512_mask_store_pd(C + (j+1) * M + (i), high_mask, c01); 
-    _mm512_mask_store_pd(C + (j+1) * M + (i+8), low_mask, c11);
+    _mm512_mask_storeu_pd(C + (j+1) * M + (i), high_mask, c01); 
+    _mm512_mask_storeu_pd(C + (j+1) * M + (i+8), low_mask, c11);
 
-    _mm512_mask_store_pd(C + (j+2) * M + (i), high_mask, c02); 
-    _mm512_mask_store_pd(C + (j+2) * M + (i+8), low_mask, c12); 
+    _mm512_mask_storeu_pd(C + (j+2) * M + (i), high_mask, c02); 
+    _mm512_mask_storeu_pd(C + (j+2) * M + (i+8), low_mask, c12); 
 
-    _mm512_mask_store_pd(C + (j+3) * M + (i), high_mask, c03); 
-    _mm512_mask_store_pd(C + (j+3) * M + (i+8), low_mask, c13);
+    _mm512_mask_storeu_pd(C + (j+3) * M + (i), high_mask, c03); 
+    _mm512_mask_storeu_pd(C + (j+3) * M + (i+8), low_mask, c13);
 
-    _mm512_mask_store_pd(C + (j+4) * M + (i), high_mask, c04); 
-    _mm512_mask_store_pd(C + (j+4) * M + (i+8), low_mask, c14);
+    _mm512_mask_storeu_pd(C + (j+4) * M + (i), high_mask, c04); 
+    _mm512_mask_storeu_pd(C + (j+4) * M + (i+8), low_mask, c14);
 
-    _mm512_mask_store_pd(C + (j+5) * M + (i), high_mask, c05); 
-    _mm512_mask_store_pd(C + (j+5) * M + (i+8), low_mask, c15);
+    _mm512_mask_storeu_pd(C + (j+5) * M + (i), high_mask, c05); 
+    _mm512_mask_storeu_pd(C + (j+5) * M + (i+8), low_mask, c15);
 }
 
 // want - A MxM, B MxM, C MxM
